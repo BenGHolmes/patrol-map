@@ -2,6 +2,8 @@
 // 	- On hard reload, sometimes starts very zoomed in. Think it tries to calculate 
 //		minScale before img has finished loading, so the minScale is very large and it
 // 		just permanently stays zoomed at a scale of 5.
+// 	- Sometimes displays white screen on load, but starts working correctly once
+// 		user zooms or pans at all.
 
 const img = document.getElementById('map')
 minScale = calcMinScale()
@@ -14,6 +16,7 @@ const panzoom = Panzoom(img, {
 	contain: 'outside',
 	pinchSpeed: 1,
 	startScale: minScale,
+	canvas: true,
 })
 	
 img.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
