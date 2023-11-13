@@ -1,14 +1,28 @@
-const elem = document.getElementById('map')
-console.log(elem)
-const panzoom = Panzoom(elem, {
-  maxScale: 5,
-	minScale: 1,
-	contain: 'outside',
-})
-panzoom.pan(10, 10)
-panzoom.zoom(2, { animate: true })
+// FIXME: Bugs
+// 	- On hard reload, sometimes starts very zoomed in. Think it tries to calculate 
+//		minScale before img has finished loading, so the minScale is very large and it
+// 		just permanently stays zoomed at a scale of 5.
 
-// Panning and pinch zooming are bound automatically (unless disablePan is true).
-// There are several available methods for zooming
-// that can be bound on button clicks or mousewheel.
-elem.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+const img = document.getElementById('map')
+minScale = calcMinScale()
+
+console.log(minScale)
+
+const panzoom = Panzoom(img, {
+	maxScale: 5,
+	minScale: minScale,
+	contain: 'outside',
+	pinchSpeed: 1,
+	startScale: minScale,
+})
+	
+img.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+
+function calcMinScale() {
+	containerWidth = document.getElementById("map-container").clientWidth
+	containerHeight = document.getElementById("map-container").clientHeight
+	imgWidth = document.getElementById("map").naturalWidth
+	imgHeight = document.getElementById("map").naturalHeight
+
+	return Math.max(containerWidth / imgWidth, containerHeight / imgHeight)
+}
