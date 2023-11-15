@@ -452,6 +452,61 @@ runs = [
 			}
 		]
 	},
+	{
+		name: "Alt 75",
+		boxes: [
+			{
+				left: 3539,
+				top: 1999,
+				width: 100,
+				height: 60,
+				rotationDeg: 0,
+			}
+		]
+	},
+	{
+		name: "Powder Horn",
+		boxes: [
+			{
+				left: 3512,
+				top: 2631,
+				width: 150,
+				height: 100,
+				rotationDeg: 0,
+			}
+		]
+	},
+	{
+		name: "Schimmelpfennig Bowl",
+		boxes: [
+			{
+				left: 3507,
+				top: 2869,
+				width: 250,
+				height: 60,
+				rotationDeg: -70,
+			},
+			{
+				left: 3500,
+				top: 2930,
+				width: 100,
+				height: 60,
+				rotationDeg: -70,
+			}
+		]
+	},
+	{
+		name: "Julia's Gold",
+		boxes: [
+			{
+				left: 3260,
+				top: 3368,
+				width: 200,
+				height: 60,
+				rotationDeg: -60,
+			}
+		]
+	},
 ]
 
 var c = document.getElementById("map");
