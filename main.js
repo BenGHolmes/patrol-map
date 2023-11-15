@@ -8,14 +8,16 @@ runs = [
 var c = document.getElementById("map");
 var ctx = c.getContext("2d");
 var maxMobileCanvasSize = 16777216
+var scale
 
 // Load image
 var img = new Image()
 img.src = "assets/public-map.png"
-naturalPixels = img.naturalWidth * img.naturalHeight;
-scale = maxMobileCanvasSize / naturalPixels
 
 img.onload = function() {
+	naturalPixels = img.naturalWidth * img.naturalHeight;
+	scale = maxMobileCanvasSize / naturalPixels
+
 	drawImage()
 	initPanzoom()
 
