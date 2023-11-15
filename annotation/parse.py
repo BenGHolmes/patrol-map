@@ -15,6 +15,30 @@ def isRectangle(bbox):
         and (bbox[6] == bbox[0])
     )
 
+def getStartPoint(bbox):
+    d1 = dist(bbox[0], bbox[1], bbox[2], bbox[3])
+    d2 = dist(bbox[2], bbox[3], bbox[4], bbox[5])
+    d3 = dist(bbox[4], bbox[5], bbox[6], bbox[7])
+    d4 = dist(bbox[6], bbox[7], bbox[0], bbox[1])
+
+    # Take average of distances
+    d1 = (d1 + d3) / 2
+    d2 = (d2 + d4) / 2
+
+    # Find short side w/ min x value
+    if d1 < d2:
+        # either 0->1 or 2->3
+        if min(bbox[0], bbox[2]) < min(bbox[4], bbox[6]):
+            # 0->1 has min x
+            
+        else:
+            # 2->3 has min x
+    else:
+        # either 1->2 or 3->4
+        if min(bbox[2], bbox[4]) < min(bbox[6], bbox[0]):
+            # 1->2 has min x
+        else:
+            # 3->0 has min x
 
 # Opening JSON file
 with open("public-map.json") as f:
@@ -53,16 +77,7 @@ for annotation in data["annotations"]:
 
         rotationDeg = 0
     else:
-        left = bbox[0]
-        top = bbox[1]
-
-        d1 = dist(bbox[0], bbox[1], bbox[2], bbox[3])
-        d2 = dist(bbox[2], bbox[3], bbox[4], bbox[5])
-        d3 = dist(bbox[4], bbox[5], bbox[6], bbox[7])
-        d4 = dist(bbox[6], bbox[7], bbox[0], bbox[1])
-
-        # Take average of distances
-        l = (d1 + d3) / 2
-        w = (d2 + d4) / 2
+        left, top = getStartPoint(bbox)
+        
 
     box = {left, top, width, height, rotationDeg}
