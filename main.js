@@ -1,25 +1,47 @@
-// FIXME: Bugs
-// 	- On hard reload, sometimes starts very zoomed in. Think it tries to calculate 
-//		minScale before img has finished loading, so the minScale is very large and it
-// 		just permanently stays zoomed at a scale of 5.
-// 	- Sometimes displays white screen on load, but starts working correctly once
-// 		user zooms or pans at all.
+runs = [
+	{
+		name: "Knob Hill",
 
-const img = document.getElementById('map')
-minScale = calcMinScale()
+	}
+]
 
-console.log(minScale)
+var c = document.getElementById("map");
+var ctx = c.getContext("2d");
+var maxMobileCanvasSize = 16777216
 
-const panzoom = Panzoom(img, {
-	maxScale: 5,
-	minScale: minScale,
-	contain: 'outside',
-	pinchSpeed: 1,
-	startScale: minScale,
-	canvas: true,
-})
-	
-img.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+// Load image
+var img = new Image()
+img.src = "assets/public-map.png"
+naturalPixels = img.naturalWidth * img.naturalHeight;
+scale = maxMobileCanvasSize / naturalPixels
+
+img.onload = function() {
+	drawImage()
+	initPanzoom()
+
+	block(runs[0])
+}
+
+function drawImage() {
+	c.width = img.naturalWidth * scale
+	c.height = img.naturalHeight * scale
+	ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, c.width, c.height)
+}
+
+function initPanzoom() {
+	minScale = calcMinScale()
+
+	const panzoom = Panzoom(c, {
+		maxScale: 5,
+		minScale: 0.05,
+		contain: 'outside',
+		pinchSpeed: 1,
+		startScale: 0.05,
+		canvas: true,
+	})
+
+	c.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+}
 
 function calcMinScale() {
 	containerWidth = document.getElementById("map-container").clientWidth
@@ -28,4 +50,10 @@ function calcMinScale() {
 	imgHeight = document.getElementById("map").naturalHeight
 
 	return Math.max(containerWidth / imgWidth, containerHeight / imgHeight)
+}
+
+function block(run) {
+	ctx.beginPath()
+	ctx.fillRect(494*scale, 3294*scale, 57*scale, 145*scale)
+	ctx.stroke()
 }
