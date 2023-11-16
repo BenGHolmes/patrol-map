@@ -18,6 +18,19 @@ body {
 	font-size: 8vh;
 }
 
+.counter {
+	position: absolute;
+	border: 0;
+	padding: 0;
+	padding-left: 16px;
+	bottom: 0;
+	width: 10vw;
+	height: 10vh;
+	text-align: left;
+	font-size: 4vh;
+	color: snow;
+}
+
 .guess {
 	background-color: rgb(63, 56, 95);
 	opacity: 90%;

@@ -47,6 +47,7 @@ window.onload = () => {
 	
 	var guessInput = document.getElementById("guess")
 	var result = document.getElementById("result")
+	var counter = document.getElementById("counter")
 	
 	initPanzoom(canvas)
 		.then(panzoom => {
@@ -55,9 +56,14 @@ window.onload = () => {
 			drawMap(canvas, ctx, panzoom, "assets/public-map.png")
 				.then(scale => {
 					runPromise.then(runs => {
+						let nRuns = runs.length;
+						let runCount = 0;
+						counter.textContent = `${runCount}/${nRuns}`
+
 						runs = shuffle(runs)
 						let run = runs.pop()
 						block(ctx, run, scale)
+						zoomToRun(run, canvas, scale, panzoom)
 	
 						guessInput.addEventListener('keydown', (event) => {
 							if (event.key === 'Enter') {
@@ -67,9 +73,12 @@ window.onload = () => {
 								if (matches(guess, run.name)) {
 									result.classList.add("correct")
 									result.classList.remove("hidden")
+									runCount += 1
+									counter.textContent = `${runCount}/${nRuns}`
 								} else {
 									result.classList.add("wrong")
 									result.classList.remove("hidden")
+									runs.unshift(run) // Add run back if we get it wrong
 								}
 
 								result.textContent = run.name
@@ -82,10 +91,11 @@ window.onload = () => {
 	
 									drawMap(canvas, ctx, panzoom, "assets/public-map.png").then(scale => {
 										if (runs.length == 0) {
-											alert("Done")
+											alert("Done!")
 										}
 										run = runs.pop()
 										block(ctx, run, scale)
+										zoomToRun(run, canvas, scale, panzoom)
 									})
 								}, 1000)	
 							}
@@ -94,6 +104,19 @@ window.onload = () => {
 					
 				})
 		})
+}
+
+function zoomToRun(run, canvas, scale, panzoom) {
+	panzoom.zoom(1.2)
+	setTimeout(() => {
+		let scaledRunTop = run.boxes[0].top * scale
+		let scaledRunLeft = run.boxes[0].left * scale
+
+		let panX = canvas.width / 2 / 1.2 - scaledRunLeft * 1.2
+		let panY = canvas.height / 2 / 1.2 - scaledRunTop * 1.2
+
+		panzoom.pan(panX, panY)
+	}, 50)
 }
 
 
@@ -133,17 +156,37 @@ function matches(guess, name) {
 	guessChars = guess.replace(/\W/g, '').toLowerCase()
 	nameChars = name.replace(/\W/g, '').toLowerCase()
 
-	// Exact match
-	if (guessChars == nameChars) {
-		return true
+	guessCounts = countChars(guessChars)
+	nameCounts = countChars(nameChars)
+
+	let strikes = 0
+
+	nameCounts.forEach( (value, key, map) => {
+		if (guessCounts.has(key)) {
+			guessCount = guessCounts.get(key)
+		} else {
+			guessCount = 0
+		}
+
+		strikes += Math.abs(value - guessCount)
+	});
+
+	allowedStrikes = Math.floor(nameChars.length * 0.2)
+
+	return strikes <= allowedStrikes
+}
+
+function countChars(word) {
+	let map = new Map()
+	for (let i=0; i<word.length; i++) {
+		if (map.has(word[i])) {
+			map.set(word[i], map.get(word[i])+1)
+		} else {
+			map.set(word[i],1)
+		}
 	}
 
-	// Strip trailing 's
-	if (guessChars == nameChars.slice(0,-1)) {
-		return true
-	}
-
-	return false
+	return map
 }
 
 function randInt(max) {
