@@ -47,6 +47,7 @@ window.onload = () => {
 	
 	var guessInput = document.getElementById("guess")
 	var result = document.getElementById("result")
+	var counter = document.getElementById("counter")
 	
 	initPanzoom(canvas)
 		.then(panzoom => {
@@ -55,9 +56,14 @@ window.onload = () => {
 			drawMap(canvas, ctx, panzoom, "assets/public-map.png")
 				.then(scale => {
 					runPromise.then(runs => {
+						let nRuns = runs.length;
+						let runCount = 1;
+						counter.textContent = `${runCount}/${nRuns}`
+
 						runs = shuffle(runs)
 						let run = runs.pop()
 						block(ctx, run, scale)
+						zoomToRun(run, canvas, scale, panzoom)
 	
 						guessInput.addEventListener('keydown', (event) => {
 							if (event.key === 'Enter') {
@@ -86,6 +92,9 @@ window.onload = () => {
 										}
 										run = runs.pop()
 										block(ctx, run, scale)
+										zoomToRun(run, canvas, scale, panzoom)
+										runCount += 1
+										counter.textContent = `${runCount}/${nRuns}`
 									})
 								}, 1000)	
 							}
@@ -94,6 +103,19 @@ window.onload = () => {
 					
 				})
 		})
+}
+
+function zoomToRun(run, canvas, scale, panzoom) {
+	panzoom.zoom(1.2)
+	setTimeout(() => {
+		let scaledRunTop = run.boxes[0].top * scale
+		let scaledRunLeft = run.boxes[0].left * scale
+
+		let panX = canvas.width / 2 / 1.2 - scaledRunLeft * 1.2
+		let panY = canvas.height / 2 / 1.2 - scaledRunTop * 1.2
+
+		panzoom.pan(panX, panY)
+	}, 50)
 }
 
 
