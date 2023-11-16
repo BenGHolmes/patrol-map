@@ -46,6 +46,7 @@ window.onload = () => {
 	var ctx = canvas.getContext("2d");
 	
 	var guessInput = document.getElementById("guess")
+	var result = document.getElementById("result")
 	
 	initPanzoom(canvas)
 		.then(panzoom => {
@@ -54,17 +55,39 @@ window.onload = () => {
 			drawMap(canvas, ctx, panzoom, "assets/public-map.png")
 				.then(scale => {
 					runPromise.then(runs => {
-						blockRandomRun(ctx, runs, scale)
+						idx = randInt(runs.length)
+						run = runs[idx]
+						block(ctx, run, scale)
 	
 						guessInput.addEventListener('keydown', (event) => {
 							if (event.key === 'Enter') {
 								let guess = guessInput.value;
 								guessInput.value = '';
-								console.log(guess)
+								console.log("guess:", guess)
+								console.log("name:", run.name)
 
-								drawMap(canvas, ctx, panzoom, "assets/public-map.png").then(scale => {
-									blockRandomRun(ctx, runs, scale)
-								})
+								if (matches(guess, run.name)) {
+									result.classList.add("correct")
+									result.classList.remove("hidden")
+								} else {
+									result.classList.add("wrong")
+									result.classList.remove("hidden")
+								}
+
+								result.textContent = run.name
+
+								setTimeout(() => {
+									result.textContent = ''
+									result.classList.remove("correct")
+									result.classList.remove("wrong")
+									result.classList.add("hidden")
+	
+									drawMap(canvas, ctx, panzoom, "assets/public-map.png").then(scale => {
+										idx = randInt(runs.length)
+										run = runs[idx]
+										block(ctx, run, scale)
+									})
+								}, 1000)	
 							}
 						});
 					})
@@ -97,6 +120,35 @@ function block(ctx, run, scale) {
 		ctx.stroke()
 		ctx.restore()
 	}
+}
+
+function clearResult(result) {
+	result.textContent = ''
+	result.classList.remove("correct")
+	result.classList.remove("wrong")
+	result.classList.add("hidden")
+}
+
+function matches(guess, name) {
+	guessChars = guess.replace(/\W/g, '').toLowerCase()
+	nameChars = name.replace(/\W/g, '').toLowerCase()
+
+	console.log("guessChars:", guessChars)
+	console.log("nameChars:", nameChars)
+
+	// Exact match
+	if (guessChars == nameChars) {
+		console.log("exact match")
+		return true
+	}
+
+	// Strip trailing 's
+	if (guessChars == nameChars.slice(0,-1)) {
+		console.log("match excluding last letter")
+		return true
+	}
+
+	return false
 }
 
 function randInt(max) {

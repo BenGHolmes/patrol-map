@@ -7,16 +7,37 @@ body {
 	height: 100vh;
 }
 
-.guess {
+.banner {
 	position: absolute;
 	border: 0;
 	padding: 0;
 	bottom: 0;
 	width: 100vw;
 	height: 10vh;
-	background-color: rgb(63, 56, 95);
-	opacity: 90%;
 	text-align: center;
 	font-size: 8vh;
+}
+
+.guess {
+	background-color: rgb(63, 56, 95);
+	opacity: 90%;
 	color: snow;
+}
+
+.result {
+	z-index: 1;
+}
+
+.correct {
+	background-color: #88FF88;
+	color: snow;
+}
+
+.wrong {
+	background-color: #FF8888;
+	color: snow;
+}
+
+.hidden {
+	visibility: hidden;
 }
