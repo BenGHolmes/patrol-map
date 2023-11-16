@@ -55,16 +55,14 @@ window.onload = () => {
 			drawMap(canvas, ctx, panzoom, "assets/public-map.png")
 				.then(scale => {
 					runPromise.then(runs => {
-						idx = randInt(runs.length)
-						run = runs[idx]
+						runs = shuffle(runs)
+						let run = runs.pop()
 						block(ctx, run, scale)
 	
 						guessInput.addEventListener('keydown', (event) => {
 							if (event.key === 'Enter') {
 								let guess = guessInput.value;
 								guessInput.value = '';
-								console.log("guess:", guess)
-								console.log("name:", run.name)
 
 								if (matches(guess, run.name)) {
 									result.classList.add("correct")
@@ -83,8 +81,10 @@ window.onload = () => {
 									result.classList.add("hidden")
 	
 									drawMap(canvas, ctx, panzoom, "assets/public-map.png").then(scale => {
-										idx = randInt(runs.length)
-										run = runs[idx]
+										if (runs.length == 0) {
+											alert("Done")
+										}
+										run = runs.pop()
 										block(ctx, run, scale)
 									})
 								}, 1000)	
@@ -133,18 +133,13 @@ function matches(guess, name) {
 	guessChars = guess.replace(/\W/g, '').toLowerCase()
 	nameChars = name.replace(/\W/g, '').toLowerCase()
 
-	console.log("guessChars:", guessChars)
-	console.log("nameChars:", nameChars)
-
 	// Exact match
 	if (guessChars == nameChars) {
-		console.log("exact match")
 		return true
 	}
 
 	// Strip trailing 's
 	if (guessChars == nameChars.slice(0,-1)) {
-		console.log("match excluding last letter")
 		return true
 	}
 
@@ -153,4 +148,23 @@ function matches(guess, name) {
 
 function randInt(max) {
 	return Math.floor(Math.random() * max);
+}
+
+// https://stackoverflow.com/a/2450976
+function shuffle(array) {
+  let currentIndex = array.length,  randomIndex;
+
+  // While there remain elements to shuffle.
+  while (currentIndex > 0) {
+
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
 }
