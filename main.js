@@ -1,72 +1,82 @@
-var c = document.getElementById("map");
-var ctx = c.getContext("2d");
-var maxMobileCanvasSize = 16777216
+const maxMobileCanvasSize = 16777216
 
-var guessInput = document.getElementById("guess")
-var panzoom_init_done = false
-
-blockRandomRun()
-
-guessInput.addEventListener('keydown', (event) => {
-	if (event.key === 'Enter') {
-		blockRandomRun()
-	}
-});
-
-function blockRandomRun() {
-	// ctx.clearRect(0, 0, c.width, c.height);
-	// ctx.beginPath()
-	var img = new Image()
-
-	img.onload = function() {	
-		drawImage(img)
-		initPanzoom()
-
-		fetch("./annotation/output/public-map.json")
-		.then(response => {
-			return response.json();
-		}).then(runs => {
-			idx = randInt(runs.length)
-			block(img, runs[idx])
-		});
-	}	
+const initPanzoom = (canvas) => 
+	new Promise((resolve, reject) => {
+		const panzoom = Panzoom(canvas, {
+			maxScale: 5,
+			minScale: 0.001,
+			contain: 'outside',
+			pinchSpeed: 1,
+			startScale: 0.001,
+			canvas: true,
+		})
 	
-	img.src = "assets/public-map.png"
+		canvas.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+
+		resolve(panzoom)
+	});
+
+const drawMap = (canvas, ctx, panzoom, src) => 
+	new Promise((resolve, reject) => {
+		var img = new Image()
+
+		img.onload = function() {	
+			// Calculate max image scale that will stil work on iOS
+			// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas#maximum_canvas_size
+			let scale = getImageScale(img)
+
+			// Resize the canvas to max size, same aspect ratio as image
+			canvas.width = img.naturalWidth * scale
+			canvas.height = img.naturalHeight * scale
+
+			// Draw the image
+			ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, canvas.width, canvas.height)
+
+			// Zoom all the way out
+			panzoom.zoom(0.001)
+
+			resolve(scale)
+		}	
+
+		img.src = src
+	});
+
+window.onload = () => {
+	var canvas = document.getElementById("map");
+	var ctx = canvas.getContext("2d");
+	
+	var guessInput = document.getElementById("guess")
+	
+	initPanzoom(canvas)
+		.then(panzoom => {
+			let runPromise = fetch("./annotation/output/public-map.json").then(response => {return response.json();})
+	
+			drawMap(canvas, ctx, panzoom, "assets/public-map.png")
+				.then(scale => {
+					runPromise.then(runs => {
+						blockRandomRun(ctx, runs, scale)
+	
+						guessInput.addEventListener('keydown', (event) => {
+							if (event.key === 'Enter') {
+								let guess = guessInput.value;
+								guessInput.value = '';
+								console.log(guess)
+
+								drawMap(canvas, ctx, panzoom, "assets/public-map.png").then(scale => {
+									blockRandomRun(ctx, runs, scale)
+								})
+							}
+						});
+					})
+					
+				})
+		})
 }
 
-function drawImage(img) {
-	scale = getImageScale(img)
-	console.log(img.naturalWidth, img.naturalHeight, scale)
 
-	c.width = img.naturalWidth * scale
-	c.height = img.naturalHeight * scale
-
-	console.log(c.width, c.height)
-
-	ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, c.width, c.height)
-}
-
-function initPanzoom() {
-	if (panzoom_init_done) {
-		return
-	}
-
-	panzoom_init_done = true
-
-	minScale = calcMinScale()
-	
-	console.log(minScale)
-
-	const panzoom = Panzoom(c, {
-		maxScale: 5,
-		minScale: 0.05,
-		contain: 'outside',
-		pinchSpeed: 1,
-		startScale: 0.05,
-		canvas: true,
-	})
-
-	c.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+function blockRandomRun(ctx, runs, scale) {
+	idx = randInt(runs.length)
+	block(ctx, runs[idx], scale)
 }
 
 function getImageScale(img) {
@@ -76,18 +86,7 @@ function getImageScale(img) {
 	return scale;
 }
 
-function calcMinScale() {
-	containerWidth = document.getElementById("map-container").clientWidth
-	containerHeight = document.getElementById("map-container").clientHeight
-	imgWidth = c.width
-	imgHeight = c.height
-
-	return Math.max(containerWidth / imgWidth, containerHeight / imgHeight)
-}
-
-function block(img, run) {
-	scale = getImageScale(img)
-
+function block(ctx, run, scale) {
 	for (let i=0; i<run.boxes.length; i++) {
 		box = run.boxes[i]
 		ctx.save()
