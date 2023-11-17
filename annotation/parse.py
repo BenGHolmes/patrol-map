@@ -5,9 +5,16 @@ import numpy as np
 from collections import defaultdict
 
 
+def fixNumberCapitalization(word):
+    # 3Rd -> 3rd
+    if word[0].isdigit():
+        return word.lower()
+    return word
+
+
 def formatName(name):
     # Capitalize first letter of each word
-    name = name.title()
+    name = name.strip().title()
 
     # Title capitalizes 's to 'S, fix that
     name = name.replace("'S", "'s")
@@ -18,7 +25,14 @@ def formatName(name):
     # C2
     name = name.replace("Cii", "CII")
 
+    # Numbering (3rd, etc.)
+    name = " ".join([fixNumberCapitalization(word) for word in name.split()])
+
     return name
+
+
+def parseNames(nameStr):
+    return [formatName(name) for name in nameStr.split("/")]
 
 
 def dist(x1, y1, x2, y2):
@@ -121,8 +135,8 @@ for file in os.listdir("input"):
     with open(f"input/{file}") as f:
         data = json.load(f)
 
-    labels = {
-        c["id"]: formatName(c["name"])
+    run_names = {
+        c["id"]: parseNames(c["name"])
         for c in data["categories"]
         if c["name"] != "uncategorized"
     }
@@ -130,10 +144,8 @@ for file in os.listdir("input"):
     runs = defaultdict(lambda: [])
 
     for annotation in data["annotations"]:
-        if annotation["category_id"] not in labels:
+        if annotation["category_id"] not in run_names:
             continue
-
-        label = labels[annotation["category_id"]]
 
         # [x1, y1, x2, y2, x3, y3, x4, y4]
         #  0   1   2   3   4   5   6   7
@@ -145,10 +157,10 @@ for file in os.listdir("input"):
             box = getPolygonBox(bbox)
 
         # Add this box to the runs dict
-        runs[label].append(box)
+        runs[annotation["category_id"]].append(box)
 
     # Convert runs dict into array of run objects
-    output = [{"name": name, "boxes": boxes} for name, boxes in runs.items()]
+    output = [{"names": run_names[id], "boxes": boxes} for id, boxes in runs.items()]
 
     with open(f"output/{file}", "w") as f:
         f.write(json.dumps(output))

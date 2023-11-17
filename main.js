@@ -1,4 +1,41 @@
 const maxMobileCanvasSize = 16777216
+const maps = {
+	"Public": {
+		image: "assets/public-map.png",
+		runs: "annotation/output/public-map.json",
+		zoom: true,
+	},
+	"Complex 1": {
+		image: "assets/complex-1.png",
+		runs: "annotation/output/complex-1.json"
+	},
+	"Complex 2": {
+		image: "assets/complex-2.png",
+		runs: "annotation/output/complex-2.json"
+	},
+	"Complex 3": {
+		image: "assets/complex-3.png",
+		runs: "annotation/output/complex-3.json"
+	},
+	"Complex 4A": {
+		image: "assets/complex-4a.png",
+		runs: "annotation/output/complex-4a.json"
+	},
+	"Complex 4B": {
+		image: "assets/complex-4b.png",
+		runs: "annotation/output/complex-4b.json"
+	},
+	"Complex 5": {
+		image: "assets/complex-5.png",
+		runs: "annotation/output/complex-5.json"
+	}
+}
+
+const mapObj = maps["Public"]
+const mapFile = mapObj.image
+const runFile = mapObj.runs
+const shouldZoom = true;
+const showAll = false;
 
 const initPanzoom = (canvas) => 
 	new Promise((resolve, reject) => {
@@ -51,11 +88,19 @@ window.onload = () => {
 	
 	initPanzoom(canvas)
 		.then(panzoom => {
-			let runPromise = fetch("./annotation/output/public-map.json").then(response => {return response.json();})
+			let runPromise = fetch(runFile).then(response => {return response.json();})
 	
-			drawMap(canvas, ctx, panzoom, "assets/public-map.png")
+			drawMap(canvas, ctx, panzoom, mapFile)
 				.then(scale => {
 					runPromise.then(runs => {
+						if (showAll) {
+							for (let i=0; i<runs.length; i++) {
+								block(ctx, runs[i], scale)
+							}
+	
+							return // Exit early for debugging
+						}
+
 						let nRuns = runs.length;
 						let runCount = 0;
 						counter.textContent = `${runCount}/${nRuns}`
@@ -63,14 +108,17 @@ window.onload = () => {
 						runs = shuffle(runs)
 						let run = runs.pop()
 						block(ctx, run, scale)
-						zoomToRun(run, canvas, scale, panzoom)
+						if (shouldZoom) {
+							zoomToRun(run, canvas, scale, panzoom)
+						}
+						
 	
 						guessInput.addEventListener('keydown', (event) => {
 							if (event.key === 'Enter') {
 								let guess = guessInput.value;
 								guessInput.value = '';
 
-								if (matches(guess, run.name)) {
+								if (matches(guess, run.names)) {
 									result.classList.add("correct")
 									result.classList.remove("hidden")
 									runCount += 1
@@ -81,7 +129,7 @@ window.onload = () => {
 									runs.unshift(run) // Add run back if we get it wrong
 								}
 
-								result.textContent = run.name
+								result.textContent = run.names.join(" / ")
 
 								setTimeout(() => {
 									result.textContent = ''
@@ -89,13 +137,15 @@ window.onload = () => {
 									result.classList.remove("wrong")
 									result.classList.add("hidden")
 	
-									drawMap(canvas, ctx, panzoom, "assets/public-map.png").then(scale => {
+									drawMap(canvas, ctx, panzoom, mapFile).then(scale => {
 										if (runs.length == 0) {
 											alert("Done!")
 										}
 										run = runs.pop()
 										block(ctx, run, scale)
-										zoomToRun(run, canvas, scale, panzoom)
+										if (shouldZoom) {
+											zoomToRun(run, canvas, scale, panzoom)
+										}
 									})
 								}, 1000)	
 							}
@@ -107,13 +157,17 @@ window.onload = () => {
 }
 
 function zoomToRun(run, canvas, scale, panzoom) {
+	// FIXME: get this working for complex maps as well. Only works for public map right now.
+	// actually only works for public map on my laptop. I definitely didn't understand the
+	// scaling and just got lucky.
 	panzoom.zoom(1.2)
+	
 	setTimeout(() => {
 		let scaledRunTop = run.boxes[0].top * scale
 		let scaledRunLeft = run.boxes[0].left * scale
 
-		let panX = canvas.width / 2 / 1.2 - scaledRunLeft * 1.2
-		let panY = canvas.height / 2 / 1.2 - scaledRunTop * 1.2
+		let panX = canvas.width / 2 / zoomScale - scaledRunLeft * zoomScale
+		let panY = canvas.height / 2 / zoomScale - scaledRunTop * zoomScale
 
 		panzoom.pan(panX, panY)
 	}, 50)
@@ -152,28 +206,36 @@ function clearResult(result) {
 	result.classList.add("hidden")
 }
 
-function matches(guess, name) {
-	guessChars = guess.replace(/\W/g, '').toLowerCase()
-	nameChars = name.replace(/\W/g, '').toLowerCase()
+function matches(guess, names) {
+	for (let i=0; i<names.length; i++) {
+		let name = names[i]
 
-	guessCounts = countChars(guessChars)
-	nameCounts = countChars(nameChars)
+		guessChars = guess.replace(/\W/g, '').toLowerCase()
+		nameChars = name.replace(/\W/g, '').toLowerCase()
 
-	let strikes = 0
+		guessCounts = countChars(guessChars)
+		nameCounts = countChars(nameChars)
 
-	nameCounts.forEach( (value, key, map) => {
-		if (guessCounts.has(key)) {
-			guessCount = guessCounts.get(key)
-		} else {
-			guessCount = 0
+		let strikes = 0
+
+		nameCounts.forEach( (value, key, map) => {
+			if (guessCounts.has(key)) {
+				guessCount = guessCounts.get(key)
+			} else {
+				guessCount = 0
+			}
+
+			strikes += Math.abs(value - guessCount)
+		});
+
+		allowedStrikes = Math.floor(nameChars.length * 0.2)
+
+		if (strikes <= allowedStrikes) {
+			return true
 		}
-
-		strikes += Math.abs(value - guessCount)
-	});
-
-	allowedStrikes = Math.floor(nameChars.length * 0.2)
-
-	return strikes <= allowedStrikes
+	}
+	
+	return false
 }
 
 function countChars(word) {
