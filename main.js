@@ -31,15 +31,38 @@ const maps = {
 	}
 }
 
+const nextMap = {
+	"Public": "Complex 1",
+	"Complex 1": "Complex 2",
+	"Complex 2": "Complex 3",
+	"Complex 3": "Complex 4A",
+	"Complex 4A": "Complex 4B",
+	"Complex 4B": "Complex 5",
+	"Complex 5": "Complex 1",
+}
+
+var currentMapName
+var currentMap
+var currentMapRuns
+var currentBlockedRun
+var panzoom
+var canvas
+var ctx
+var guessInput
+var result
+var counter
+var scale
+
+// Debugging
 const mapObj = maps["Public"]
 const mapFile = mapObj.image
 const runFile = mapObj.runs
 const shouldZoom = true;
 const showAll = false;
 
-const initPanzoom = (canvas) => 
+const initPanzoom = () => 
 	new Promise((resolve, reject) => {
-		const panzoom = Panzoom(canvas, {
+		panzoom = Panzoom(canvas, {
 			maxScale: 5,
 			minScale: 0.001,
 			contain: 'outside',
@@ -50,17 +73,17 @@ const initPanzoom = (canvas) =>
 	
 		canvas.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
 
-		resolve(panzoom)
+		resolve()
 	});
 
-const drawMap = (canvas, ctx, panzoom, src) => 
+const drawMap = (src) => 
 	new Promise((resolve, reject) => {
 		var img = new Image()
 
 		img.onload = function() {	
 			// Calculate max image scale that will stil work on iOS
 			// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas#maximum_canvas_size
-			let scale = getImageScale(img)
+			scale = getImageScale(img)
 
 			// Resize the canvas to max size, same aspect ratio as image
 			canvas.width = img.naturalWidth * scale
@@ -72,99 +95,73 @@ const drawMap = (canvas, ctx, panzoom, src) =>
 			// Zoom all the way out
 			panzoom.zoom(0.001)
 
-			resolve(scale)
+			resolve()
 		}	
 
 		img.src = src
 	});
 
 window.onload = () => {
-	var canvas = document.getElementById("map");
-	var ctx = canvas.getContext("2d");
+	canvas = document.getElementById("map");
+	ctx = canvas.getContext("2d");
 	
-	var guessInput = document.getElementById("guess")
-	var result = document.getElementById("result")
-	var counter = document.getElementById("counter")
+	guessInput = document.getElementById("guess")
+	result = document.getElementById("result")
+	counter = document.getElementById("counter")
 	
-	initPanzoom(canvas)
-		.then(panzoom => {
-			let runPromise = fetch(runFile).then(response => {return response.json();})
-	
-			drawMap(canvas, ctx, panzoom, mapFile)
-				.then(scale => {
-					runPromise.then(runs => {
-						if (showAll) {
-							for (let i=0; i<runs.length; i++) {
-								block(ctx, runs[i], scale)
-							}
-	
-							return // Exit early for debugging
-						}
+	initPanzoom()
+		.then(() => {
+			loadMap("Public")
 
-						let nRuns = runs.length;
-						let runCount = 0;
+			guessInput.addEventListener('keydown', (event) => {
+				if (event.key === 'Enter') {
+					let guess = guessInput.value;
+					guessInput.value = '';
+
+					if (matches(guess, currentBlockedRun.names)) {
+						result.classList.add("correct")
+						result.classList.remove("hidden")
+						runCount += 1
 						counter.textContent = `${runCount}/${nRuns}`
+					} else {
+						result.classList.add("wrong")
+						result.classList.remove("hidden")
+						currentMapRuns.unshift(currentBlockedRun) // Add run back if we get it wrong
+					}
 
-						runs = shuffle(runs)
-						let run = runs.pop()
-						block(ctx, run, scale)
-						if (shouldZoom) {
-							zoomToRun(run, canvas, scale, panzoom)
-						}
-						
-	
-						guessInput.addEventListener('keydown', (event) => {
-							if (event.key === 'Enter') {
-								let guess = guessInput.value;
-								guessInput.value = '';
+					result.textContent = currentBlockedRun.names.join(" / ")
 
-								if (matches(guess, run.names)) {
-									result.classList.add("correct")
-									result.classList.remove("hidden")
-									runCount += 1
-									counter.textContent = `${runCount}/${nRuns}`
-								} else {
-									result.classList.add("wrong")
-									result.classList.remove("hidden")
-									runs.unshift(run) // Add run back if we get it wrong
-								}
+					setTimeout(() => {
+						result.textContent = ''
+						result.classList.remove("correct")
+						result.classList.remove("wrong")
+						result.classList.add("hidden")
 
-								result.textContent = run.names.join(" / ")
-
-								setTimeout(() => {
-									result.textContent = ''
-									result.classList.remove("correct")
-									result.classList.remove("wrong")
-									result.classList.add("hidden")
-	
-									drawMap(canvas, ctx, panzoom, mapFile).then(scale => {
-										if (runs.length == 0) {
-											alert("Done!")
-										}
-										run = runs.pop()
-										block(ctx, run, scale)
-										if (shouldZoom) {
-											zoomToRun(run, canvas, scale, panzoom)
-										}
-									})
-								}, 1000)	
+						drawMap(currentMap.image).then(() => {
+							if (currentMapRuns.length == 0) {
+								loadMap(nextMap[currentMapName])
 							}
-						});
-					})
-					
-				})
+							currentBlockedRun = currentMapRuns.pop()
+							blockCurrentRun()
+							if (currentMap.zoom) {
+								zoomToCurrentRun()
+							}
+						})
+					}, 1000)	
+				}
+			});
 		})
 }
 
-function zoomToRun(run, canvas, scale, panzoom) {
+function zoomToCurrentRun() {
 	// FIXME: get this working for complex maps as well. Only works for public map right now.
 	// actually only works for public map on my laptop. I definitely didn't understand the
 	// scaling and just got lucky.
 	panzoom.zoom(1.2)
 	
 	setTimeout(() => {
-		let scaledRunTop = run.boxes[0].top * scale
-		let scaledRunLeft = run.boxes[0].left * scale
+		let scaledRunTop = currentBlockedRun.boxes[0].top * scale
+		let scaledRunLeft = currentBlockedRun.boxes[0].left * scale
 
 		let panX = canvas.width / 2 / 1.2 - scaledRunLeft * 1.2
 		let panY = canvas.height / 2 / 1.2 - scaledRunTop * 1.2
@@ -186,9 +183,9 @@ function getImageScale(img) {
 	return scale;
 }
 
-function block(ctx, run, scale) {
-	for (let i=0; i<run.boxes.length; i++) {
-		box = run.boxes[i]
+function blockCurrentRun() {
+	for (let i=0; i<currentBlockedRun.boxes.length; i++) {
+		box = currentBlockedRun.boxes[i]
 		ctx.save()
 		ctx.beginPath()
 		ctx.translate(box.left*scale, box.top*scale)
@@ -273,3 +270,58 @@ function shuffle(array) {
 
   return array;
 }
+
+function loadMap(mapName) {
+	if (mapName == currentMapName) {
+		return
+	}
+
+	if (currentMapName) {
+		document.getElementById(currentMapName).classList.remove("active")
+	}
+	document.getElementById(mapName).classList.add("active")
+	
+	currentMapName = mapName
+	currentMap = maps[mapName]
+
+	let runPromise = fetch(currentMap.runs).then(response => {return response.json();})
+	
+	drawMap(currentMap.image)
+		.then(() => {
+			runPromise.then(runs => {
+				if (showAll) {
+					for (let i=0; i<runs.length; i++) {
+						block(runs[i])
+					}
+
+					return // Exit early for debugging
+				}
+
+				let nRuns = runs.length;
+				let runCount = 0;
+				counter.textContent = `${runCount}/${nRuns}`
+
+				currentMapRuns = shuffle(runs)
+				currentBlockedRun = runs.pop()
+				blockCurrentRun()
+				if (currentMap.zoom) {
+					zoomToCurrentRun()
+				}
+			})
+			
+		})
+}
+
+function loadPublicMap() {loadMap("Public")}
+
+function loadComplex1Map() {loadMap("Complex 1")}
+
+function loadComplex2Map() {loadMap("Complex 2")}
+
+function loadComplex3Map() {loadMap("Complex 3")}
+
+function loadComplex4aMap() {loadMap("Complex 4A")}
+
+function loadComplex4bMap() {loadMap("Complex 4B")}
+
+function loadComplex5Map() {loadMap("Complex 5")}
