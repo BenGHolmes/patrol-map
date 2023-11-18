@@ -47,6 +47,8 @@ var currentMapRunCount
 var currentMapRemainingRuns
 var currentBlockedRun
 var correctCount
+var correctRuns
+var missedRuns
 var panzoom
 var canvas
 var ctx
@@ -120,10 +122,13 @@ window.onload = () => {
 						result.classList.add("correct")
 						result.classList.remove("hidden")
 						correctCount += 1
+						missedRuns.delete(currentBlockedRun)
+						correctRuns.push(currentBlockedRun)
 						counter.textContent = `${correctCount}/${currentMapRunCount}`
 					} else {
 						result.classList.add("wrong")
 						result.classList.remove("hidden")
+						missedRuns.add(currentBlockedRun)
 						currentMapRemainingRuns.unshift(currentBlockedRun) // Add run back if we get it wrong
 					}
 
@@ -136,6 +141,8 @@ window.onload = () => {
 						result.classList.add("hidden")
 
 						drawMap(currentMap.image).then(() => {
+							highlightCorrectRuns()
+							highlightMissedRuns()
 							if (currentMapRemainingRuns.length == 0) {
 								loadMap(nextMap[currentMapName])
 							} else {
@@ -192,6 +199,40 @@ function blockCurrentRun() {
 		ctx.fillRect(0, 0, box.width*scale, box.height*scale)
 		ctx.stroke()
 		ctx.restore()
+	}
+}
+
+function highlightCorrectRuns() {
+	for (let i=0; i<correctRuns.length; i++) {
+		let run = correctRuns[i]
+		for (let j=0; j<run.boxes.length; j++) {
+			let box = run.boxes[j]
+			ctx.save()
+			ctx.fillStyle = "rgba(136,255,136,0.5)"
+			ctx.beginPath()
+			ctx.translate(box.left*scale, box.top*scale)
+			ctx.rotate(-box.rotationDeg * Math.PI / 180)
+			ctx.fillRect(0, 0, box.width*scale, box.height*scale)
+			ctx.stroke()
+			ctx.restore()
+		}
+	}
+}
+
+
+function highlightMissedRuns() {
+	for (const run of missedRuns) {
+		for (let j=0; j<run.boxes.length; j++) {
+			let box = run.boxes[j]
+			ctx.save()
+			ctx.fillStyle = "rgba(255,136,136,0.5)"
+			ctx.beginPath()
+			ctx.translate(box.left*scale, box.top*scale)
+			ctx.rotate(-box.rotationDeg * Math.PI / 180)
+			ctx.fillRect(0, 0, box.width*scale, box.height*scale)
+			ctx.stroke()
+			ctx.restore()
+		}
 	}
 }
 
@@ -297,6 +338,8 @@ function loadMap(mapName) {
 
 				currentMapRunCount = runs.length;
 				correctCount = 0
+				correctRuns = []
+				missedRuns = new Set()
 
 				counter.textContent = `${correctCount}/${currentMapRunCount}`
 
