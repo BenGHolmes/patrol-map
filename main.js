@@ -54,10 +54,6 @@ var counter
 var scale
 
 // Debugging
-const mapObj = maps["Public"]
-const mapFile = mapObj.image
-const runFile = mapObj.runs
-const shouldZoom = true;
 const showAll = false;
 
 const initPanzoom = () => 
@@ -185,7 +181,7 @@ function getImageScale(img) {
 
 function blockCurrentRun() {
 	for (let i=0; i<currentBlockedRun.boxes.length; i++) {
-		box = currentBlockedRun.boxes[i]
+		let box = currentBlockedRun.boxes[i]
 		ctx.save()
 		ctx.beginPath()
 		ctx.translate(box.left*scale, box.top*scale)
@@ -207,25 +203,24 @@ function matches(guess, names) {
 	for (let i=0; i<names.length; i++) {
 		let name = names[i]
 
-		guessChars = guess.replace(/\W/g, '').toLowerCase()
-		nameChars = name.replace(/\W/g, '').toLowerCase()
+		let guessChars = guess.replace(/\W/g, '').toLowerCase()
+		let nameChars = name.replace(/\W/g, '').toLowerCase()
 
-		guessCounts = countChars(guessChars)
-		nameCounts = countChars(nameChars)
+		let guessCounts = countChars(guessChars)
+		let nameCounts = countChars(nameChars)
 
 		let strikes = 0
 
 		nameCounts.forEach( (value, key, map) => {
+			let guessCount = 0
 			if (guessCounts.has(key)) {
 				guessCount = guessCounts.get(key)
-			} else {
-				guessCount = 0
 			}
 
 			strikes += Math.abs(value - guessCount)
 		});
 
-		allowedStrikes = Math.floor(nameChars.length * 0.2)
+		let allowedStrikes = Math.floor(nameChars.length * 0.2)
 
 		if (strikes <= allowedStrikes) {
 			return true
