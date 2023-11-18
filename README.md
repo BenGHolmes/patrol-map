@@ -15,4 +15,5 @@ python parse.py
 - Add more maps and support switching
 - Fix weird display on mobile when keyboard present
 - Store results and weigh choice of run by how often it is guessed incorrectly
+- Add mode for naming a run when all runs are blocked
 - Add mode for guess location, where all runs are initially blocked out, and you need to click on the where the run is

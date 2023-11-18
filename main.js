@@ -43,8 +43,10 @@ const nextMap = {
 
 var currentMapName
 var currentMap
-var currentMapRuns
+var currentMapRunCount
+var currentMapRemainingRuns
 var currentBlockedRun
+var correctCount
 var panzoom
 var canvas
 var ctx
@@ -117,12 +119,12 @@ window.onload = () => {
 					if (matches(guess, currentBlockedRun.names)) {
 						result.classList.add("correct")
 						result.classList.remove("hidden")
-						runCount += 1
-						counter.textContent = `${runCount}/${nRuns}`
+						correctCount += 1
+						counter.textContent = `${correctCount}/${currentMapRunCount}`
 					} else {
 						result.classList.add("wrong")
 						result.classList.remove("hidden")
-						currentMapRuns.unshift(currentBlockedRun) // Add run back if we get it wrong
+						currentMapRemainingRuns.unshift(currentBlockedRun) // Add run back if we get it wrong
 					}
 
 					result.textContent = currentBlockedRun.names.join(" / ")
@@ -134,13 +136,14 @@ window.onload = () => {
 						result.classList.add("hidden")
 
 						drawMap(currentMap.image).then(() => {
-							if (currentMapRuns.length == 0) {
+							if (currentMapRemainingRuns.length == 0) {
 								loadMap(nextMap[currentMapName])
-							}
-							currentBlockedRun = currentMapRuns.pop()
-							blockCurrentRun()
-							if (currentMap.zoom) {
-								zoomToCurrentRun()
+							} else {
+								currentBlockedRun = currentMapRemainingRuns.pop()
+								blockCurrentRun()
+								if (currentMap.zoom) {
+									zoomToCurrentRun()
+								}
 							}
 						})
 					}, 1000)	
@@ -292,12 +295,13 @@ function loadMap(mapName) {
 					return // Exit early for debugging
 				}
 
-				let nRuns = runs.length;
-				let runCount = 0;
-				counter.textContent = `${runCount}/${nRuns}`
+				currentMapRunCount = runs.length;
+				correctCount = 0
 
-				currentMapRuns = shuffle(runs)
-				currentBlockedRun = runs.pop()
+				counter.textContent = `${correctCount}/${currentMapRunCount}`
+
+				currentMapRemainingRuns = shuffle(runs)
+				currentBlockedRun = currentMapRemainingRuns.pop()
 				blockCurrentRun()
 				if (currentMap.zoom) {
 					zoomToCurrentRun()
